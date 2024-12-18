@@ -1,61 +1,76 @@
 library(tidyverse)
 
-# 將資料整理成 tidy 格式的 tibble
-tidy_marriage_data <- tibble(
-  年別 = c(2013:2023),
-  女性與外國人結婚人數 = c(453, 573, 654, 756, 890, 862, 920, 446, 307, 508, 825),
-  男性與外國人結婚人數 = c(321, 384, 340, 347, 401, 447, 432, 321, 262, 364, 549),
-  女性與外國人離婚人數 = c(459, 417, 437, 445, 461, 401, 415, 353, 321, 309, 338),
-  男性與外國人離婚人數 = c(93, 81, 77, 70, 81, 96, 77, 65, 67, 84, 82)
+# 讀取檔案
+file_path <- "a143-.csv"  # 檔案名稱
+raw_data <- read_csv(file_path)
+
+# 檢視讀取的資料
+print("原始資料：")
+print(raw_data)
+
+# 將中文欄位名稱替換為英文
+colnames(raw_data) <- c(
+  "year",
+  "female_foreign_marriages",
+  "male_foreign_marriages",
+  "female_foreign_divorces",
+  "male_foreign_divorces"
 )
 
-# 檢視資料
-print(tidy_marriage_data)
+# 檢視替換後的資料
+print("欄位名稱替換後的資料：")
+print(raw_data)
+
 # 新增總結婚與總離婚人數欄位
-tidy_marriage_data <- tidy_marriage_data %>%
+analyzed_data <- raw_data %>%
   mutate(
-    總結婚人數 = 女性與外國人結婚人數 + 男性與外國人結婚人數,
-    總離婚人數 = 女性與外國人離婚人數 + 男性與外國人離婚人數
+    total_marriages = female_foreign_marriages + male_foreign_marriages,
+    total_divorces = female_foreign_divorces + male_foreign_divorces
   )
 
-# 檢視新增的資料框
-print(tidy_marriage_data)
+# 檢視新增欄位後的資料
+print("新增總結婚與總離婚人數後的資料：")
+print(analyzed_data)
+
 # 繪製結婚與離婚人數趨勢圖
-tidy_marriage_data %>%
-  pivot_longer(cols = c(總結婚人數, 總離婚人數), names_to = "類別", values_to = "人數") %>%
-  ggplot(aes(x = 年別, y = 人數, color = 類別)) +
+analyzed_data %>%
+  pivot_longer(cols = c(total_marriages, total_divorces), names_to = "category", values_to = "count") %>%
+  ggplot(aes(x = year, y = count, color = category)) +
   geom_line(size = 1) +
   geom_point(size = 2) +
-  labs(title = "2013-2023年外國人結婚與離婚趨勢", x = "年份", y = "人數", color = "類別") +
+  labs(title = "Marriage and Divorce Trends (2013-2023)", x = "Year", y = "Count", color = "Category") +
   theme_minimal()
+
 # 新增離婚/結婚比率欄位
-tidy_marriage_data <- tidy_marriage_data %>%
+analyzed_data <- analyzed_data %>%
   mutate(
-    離婚結婚比率 = 總離婚人數 / 總結婚人數
+    divorce_to_marriage_ratio = total_divorces / total_marriages
   )
 
-# 檢視結果
-print(tidy_marriage_data)
-
 # 繪製離婚與結婚比率趨勢圖
-tidy_marriage_data %>%
-  ggplot(aes(x = 年別, y = 離婚結婚比率)) +
+analyzed_data %>%
+  ggplot(aes(x = year, y = divorce_to_marriage_ratio)) +
   geom_line(color = "red", size = 1) +
   geom_point(color = "red", size = 2) +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
-  labs(title = "離婚與結婚比率趨勢 (2013-2023)", x = "年份", y = "離婚/結婚比率") +
+  labs(title = "Divorce to Marriage Ratio Trends (2013-2023)", x = "Year", y = "Divorce/Marriage Ratio") +
   theme_minimal()
+
 # 計算變動幅度（與前一年相比的差異）
-tidy_marriage_data <- tidy_marriage_data %>%
+analyzed_data <- analyzed_data %>%
   mutate(
-    結婚變動幅度 = 總結婚人數 - lag(總結婚人數),
-    離婚變動幅度 = 總離婚人數 - lag(總離婚人數)
+    marriage_change = total_marriages - lag(total_marriages),
+    divorce_change = total_divorces - lag(total_divorces)
   )
 
 # 繪製變動幅度圖
-tidy_marriage_data %>%
-  pivot_longer(cols = c(結婚變動幅度, 離婚變動幅度), names_to = "變動類別", values_to = "人數變化") %>%
-  ggplot(aes(x = 年別, y = 人數變化, fill = 變動類別)) +
+analyzed_data %>%
+  pivot_longer(cols = c(marriage_change, divorce_change), names_to = "change_category", values_to = "change_count") %>%
+  ggplot(aes(x = year, y = change_count, fill = change_category)) +
   geom_bar(stat = "identity", position = "dodge") +
-  labs(title = "結婚與離婚人數年度變動幅度 (2013-2023)", x = "年份", y = "人數變動", fill = "變動類別") +
+  labs(title = "Annual Changes in Marriage and Divorce Counts (2013-2023)", x = "Year", y = "Change in Count", fill = "Change Category") +
   theme_minimal()
+
+# 完成分析並檢視最終資料
+print("最終分析後的資料：")
+print(analyzed_data)
